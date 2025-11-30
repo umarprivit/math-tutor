@@ -18,12 +18,24 @@ export const MathTutorContainer = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [baseUrl, setBaseUrl] = useState('');
 
-    // Load URL from local storage on mount
+    // Load URL from local storage and server config on mount
     useEffect(() => {
         const savedUrl = localStorage.getItem('math_tutor_api_url');
         if (savedUrl) {
             setBaseUrl(savedUrl);
         }
+
+        // Fetch config from server
+        fetch('/api/config')
+            .then(res => res.json())
+            .then(data => {
+                if (data.backendUrl && data.backendUrl !== savedUrl) {
+                    console.log('Loaded config from server:', data.backendUrl);
+                    setBaseUrl(data.backendUrl);
+                    localStorage.setItem('math_tutor_api_url', data.backendUrl);
+                }
+            })
+            .catch(err => console.error('Failed to load config:', err));
     }, []);
 
     const handleUrlChange = (newUrl: string) => {

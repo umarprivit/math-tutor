@@ -15,16 +15,34 @@ interface SettingsDialogProps {
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onUrlChange, currentUrl }) => {
     const [url, setUrl] = useState(currentUrl);
     const [isOpen, setIsOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         setUrl(currentUrl);
     }, [currentUrl]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         // Basic validation to remove trailing slash
         const cleanUrl = url.replace(/\/$/, '');
-        onUrlChange(cleanUrl);
-        setIsOpen(false);
+
+        setIsSaving(true);
+        try {
+            // Update local state
+            onUrlChange(cleanUrl);
+
+            // Update server config
+            await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ backendUrl: cleanUrl }),
+            });
+
+            setIsOpen(false);
+        } catch (error) {
+            console.error('Failed to save config:', error);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -53,10 +71,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ onUrlChange, cur
                     </div>
                     <p className="text-xs text-neutral-500 ml-auto col-span-4 text-right">
                         Enter the Ngrok URL from your Colab notebook.
+                        <br />
+                        This will be saved to <code>config.json</code> and shared with all users.
                     </p>
                 </div>
                 <DialogFooter>
-                    <Button type="submit" onClick={handleSave}>Save changes</Button>
+                    <Button type="submit" onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? 'Saving...' : 'Save changes'}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
